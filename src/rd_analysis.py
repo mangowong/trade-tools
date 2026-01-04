@@ -34,22 +34,26 @@ class RDAnalysis:
             # 尝试从财务报表中获取研发费用
             df = ak.stock_profit_sheet_by_report_em(symbol=self.stock_code)
 
-            if df.empty:
+            if df is None or df.empty:
                 return self._get_empty_rd()
 
             # 获取最近4个季度的数据
             recent = df.head(4)
 
+            # 检查是否有研发费用列
+            if '研发费用' not in recent.columns:
+                return self._get_empty_rd()
+
             rd_dict = {
                 'latest_rd': self._safe_float(recent.iloc[0].get('研发费用', 0)),
                 'total_rd_4q': sum([self._safe_float(row.get('研发费用', 0)) for _, row in recent.iterrows()]),
-                'report_dates': recent['报告期'].tolist()
+                'report_dates': recent['报告期'].tolist() if '报告期' in recent.columns else []
             }
 
             self.rd_data = rd_dict
             return rd_dict
         except Exception as e:
-            print(f"获取研发费用失败: {e}")
+            # API调用失败，返回空数据
             return self._get_empty_rd()
 
     def calculate_rd_intensity(self) -> Dict:
@@ -63,7 +67,11 @@ class RDAnalysis:
             # 获取利润表数据
             profit_df = ak.stock_profit_sheet_by_report_em(symbol=self.stock_code)
 
-            if profit_df.empty:
+            if profit_df is None or profit_df.empty:
+                return {'rd_intensity': 0.0, 'trend': 'unknown'}
+
+            # 检查必需的列是否存在
+            if '研发费用' not in profit_df.columns or '营业总收入' not in profit_df.columns:
                 return {'rd_intensity': 0.0, 'trend': 'unknown'}
 
             latest = profit_df.iloc[0]
@@ -102,7 +110,7 @@ class RDAnalysis:
                 'trend': trend
             }
         except Exception as e:
-            print(f"计算研发强度失败: {e}")
+            # API调用失败，返回默认值
             return {'rd_intensity': 0.0, 'trend': 'unknown'}
 
     def analyze_rd_growth(self) -> Dict:
@@ -115,8 +123,12 @@ class RDAnalysis:
         try:
             df = ak.stock_profit_sheet_by_report_em(symbol=self.stock_code)
 
-            if df.empty or len(df) < 2:
-                return {'growth_rate': 0.0, 'consecutive_growth': 0}
+            if df is None or df.empty or len(df) < 2:
+                return {'growth_rate': 0.0, 'consecutive_growth': 0, 'latest_rd': 0.0}
+
+            # 检查是否有研发费用列
+            if '研发费用' not in df.columns:
+                return {'growth_rate': 0.0, 'consecutive_growth': 0, 'latest_rd': 0.0}
 
             rd_expenses = []
             for _, row in df.head(4).iterrows():
@@ -149,8 +161,8 @@ class RDAnalysis:
                 'latest_rd': rd_expenses[0] if rd_expenses else 0.0
             }
         except Exception as e:
-            print(f"分析研发增长失败: {e}")
-            return {'growth_rate': 0.0, 'consecutive_growth': 0}
+            # API调用失败，返回默认值
+            return {'growth_rate': 0.0, 'consecutive_growth': 0, 'latest_rd': 0.0}
 
     def evaluate_technical_capability(self) -> Dict:
         """
