@@ -1,0 +1,49 @@
+# A股股票监控配置文件
+stock_monitor:
+  # 监控的股票代码列表
+  stocks:
+    - "000001"  # 平安银行
+    - "600036"  # 招商银行
+    - "000858"  # 五粮液
+    - "600519"  # 贵州茅台
+
+  # 数据更新频率（分钟）
+  update_interval: 30
+
+  # 交易日数据存储路径
+  data_path: "./data"
+
+  # 报告输出路径
+  report_path: "./reports"
+
+  # 邮件通知配置（可选）
+  email_alert:
+    enabled: false
+    smtp_server: "smtp.qq.com"
+    smtp_port: 587
+    sender: ""
+    password: ""
+    recipients: []
+
+analysis:
+  # 资金流动分析阈值
+  fund_flow:
+    main_net_inflow_threshold: 100000000  # 主力净流入阈值（元）
+    individual_ratio_threshold: 0.5  # 散户比例阈值
+
+  # 基本面分析权重
+  fundamentals:
+    pe_ratio_max: 50  # 市盈率最大值
+    pb_ratio_max: 10  # 市净率最大值
+    roe_min: 0.08  # 净资产收益率最小值
+    debt_ratio_max: 0.6  # 资产负债率最大值
+
+  # 研发投入分析
+  rd_analysis:
+    rd_ratio_min: 0.03  # 研发费用占营收比例最小值
+    rd_growth_min: 0.1  # 研发费用增长率最小值
+
+  # 替代性分析
+  substitutability:
+    industry_pe_compare: true  # 行业市盈率对比
+    market_share_min: 0.05  # 市场占有率最小值
