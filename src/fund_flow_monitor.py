@@ -49,11 +49,11 @@ class FundFlowMonitor:
                 'large_net_inflow': float(latest.get('大单净流入-净额', 0)),
                 'medium_net_inflow': float(latest.get('中单净流入-净额', 0)),
                 'small_net_inflow': float(latest.get('小单净流入-净额', 0)),
-                'volume': float(latest.get('成交量', 0)),
-                'turnover': float(latest.get('成交额', 0))
+                'volume': 0.0,  # akshare当前不提供此数据
+                'turnover': 0.0  # akshare当前不提供此数据
             }
         except Exception as e:
-            print(f"获取实时资金流向失败: {e}")
+            # API调用失败，返回空数据
             return self._get_empty_fund_flow()
 
     def get_historical_fund_flow(self, days: int = 30) -> pd.DataFrame:
@@ -67,23 +67,20 @@ class FundFlowMonitor:
             历史资金流向DataFrame
         """
         try:
-            end_date = datetime.now()
-            start_date = end_date - timedelta(days=days * 2)  # 考虑节假日
-
             df = ak.stock_individual_fund_flow(
                 stock=self.stock_code,
                 market="sh" if self.stock_code.startswith('6') else "sz"
             )
 
-            if df.empty:
+            if df is None or df.empty:
                 return pd.DataFrame()
 
             df['日期'] = pd.to_datetime(df['日期'])
-            df = df[df['日期'] >= start_date].tail(days)
+            df = df.tail(days)
 
             return df
         except Exception as e:
-            print(f"获取历史资金流向失败: {e}")
+            # 静默失败，返回空DataFrame
             return pd.DataFrame()
 
     def analyze_fund_trend(self, days: int = 5) -> Dict:
@@ -136,18 +133,26 @@ class FundFlowMonitor:
         Returns:
             量比值
         """
-        df = self.get_historical_fund_flow(10)
+        try:
+            df = self.get_historical_fund_flow(10)
 
-        if df.empty or len(df) < 5:
+            if df.empty or len(df) < 5:
+                return 1.0
+
+            # 检查是否有成交量列
+            if '成交量' not in df.columns:
+                return 1.0
+
+            latest_volume = df.iloc[0]['成交量']
+            avg_volume = df.iloc[1:6]['成交量'].astype(float).mean()
+
+            if avg_volume == 0:
+                return 1.0
+
+            return float(latest_volume) / avg_volume
+        except Exception:
+            # 如果计算失败，返回默认值
             return 1.0
-
-        latest_volume = df.iloc[0]['成交量']
-        avg_volume = df.iloc[1:6]['成交量'].astype(float).mean()
-
-        if avg_volume == 0:
-            return 1.0
-
-        return float(latest_volume) / avg_volume
 
     def calculate_turnover_rate(self) -> float:
         """
