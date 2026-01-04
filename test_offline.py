@@ -31,7 +31,8 @@ def test_core_logic():
             with open(config_file, 'r') as f:
                 content = f.read()
                 print(f"✓ 配置文件存在 ({len(content)} 字节)")
-                print(f"✓ 包含股票: {content.count('- \"')} 个")
+                stock_count = content.count('- "')
+                print(f"✓ 包含股票: {stock_count} 个")
                 results.append(True)
     except Exception as e:
         print(f"✗ 配置加载失败: {e}")
