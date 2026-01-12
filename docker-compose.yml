@@ -1,0 +1,13 @@
+version: '3.8'
+
+services:
+  trade-tools:
+    build: .
+    container_name: a-stock-monitor
+    volumes:
+      - ./data:/app/data
+      - ./reports:/app/reports
+    environment:
+      - TZ=Asia/Shanghai
+    # 运行测试
+    command: python test_syntax.py
